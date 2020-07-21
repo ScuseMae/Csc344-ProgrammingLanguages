@@ -1,0 +1,46 @@
+
+
+
+
+
+import scala.util.parsing.combinator._
+
+abstract class MatchTree
+case class S(e:MatchTree) extends MatchTree
+case class E(c:MatchTree, e:MatchTree) extends MatchTree
+case class C(s:String) extends MatchTree
+case class NIL() extends MatchTree
+
+
+class MPParser extends JavaTokenParsers
+{
+  def s: Parser[MatchTree] = e ^^ {case se => S(se)}
+  def e: Parser[MatchTree] = c ~ e ^^ {case ch ~ ex => E(ch,ex)} | c ^^ {case ch => E(ch,NIL())}
+  def c[C] = ("a" | "b") ^^ {case ch => C(ch)}
+}
+
+
+object MicroProject3 extends MPParser
+{
+  def main(args: Array[String])
+  {
+    print("Input string to parse: ")
+    val input = scala.io.StdIn.readLine();
+    
+    println(parseAll(s, input))
+    
+   }
+}
+
+================================================
+Example Input / Output:
+- - - - - - - - - - - - - - - - - - - - - - - - 
+
+input: ababba
+
+output: 
+  Input string to parse: ababba
+  [1.7] parsed: S(E(C(a),E(C(b),E(C(a),E(C(b),E(C(b),E(C(a),NIL())))))))
+
+
+================================================
