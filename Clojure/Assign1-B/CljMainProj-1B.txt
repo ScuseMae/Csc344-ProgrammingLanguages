@@ -1,0 +1,201 @@
+;;====================================
+;;   *    *    *     *     *
+;;   Needs Re-Work & Fixing 
+;;   *    *    *     *     *
+;;====================================
+
+(ns csc344-assign2.core)
+
+(declare simplify)
+(declare bind-values)
+(declare simplify-mult)
+(declare simplify-add)
+(declare simplify-sub)
+(declare testFunction)
+
+;; Test Inputs
+;(main '[[2 3][4 5]] '[x y] '{x 4 y 6})
+;(main '[[2 3][4 5]] '[x y] '{x x y y})
+;(main '[[2 3][4 5]] '[x y] '{x x y 1})
+;(main '[[2 3][4 5]] '[x y] '{x 1 y y})
+(defn main [x y bind]
+     (let [arg1 (first (first x))
+           arg2 (second (first x))
+           arg3 (first (second x))
+           arg4 (second (second x))
+           arg5 (first y)
+           arg6 (second y)]
+      (testFunction
+       (simplify
+        (bind-values bind  
+                      (list
+                        (simplify-add (list '+ (simplify-mult (list '* arg1 arg5)) (simplify-mult (list '* arg2 arg6))))
+                        (simplify-add (list '+ (simplify-mult (list '* arg3 arg5)) (simplify-mult (list '* arg4 arg6))))))))))
+
+;(bind-values) =>
+(defn bind-values [m l]
+    (map (fn [i]
+           (cond 
+             (seq? i) (bind-values m i)
+             (vector? i) (vec (bind-values m i))
+             :default (m i i))) l))
+
+;(non-numeric? '(* 3 4 (+ 1 2))) => nil
+;(non-numeric? '(* 3 4 (+ 1 a))) => true
+(defn non-numeric? [l]
+     (some (fn [i]
+             (cond
+               (seq? i) (non-numeric? i)
+               (not (number? i)) true
+               :default false))
+           (rest l)))
+
+;(simplify) =>
+(defn simplify [expr]
+  (println "Simplify = " expr)
+      (let [list_one (rest (first expr))
+            list_two (rest (second expr))]
+        (println "List-1 = " list_one)
+        (println "List-2 = " list_two)
+        (list
+          (list '+
+            (simplify-mult (first list_one))
+            (simplify-mult (second list_one)))
+          (list '+
+            (simplify-mult (first list_two))
+            (simplify-mult (second list_two))))))
+    
+;(testFunction) =>    
+(defn testFunction [expr]
+  (if (and (and (number? (first (rest (first expr)))) (number? (second (rest (first expr))))) (and (number? (first (rest (second expr)))) (number? (second (rest (second expr))))))
+      (+ (first (rest (first expr))) (second (rest (first expr))) (first (rest (second expr))) (second (rest (second expr))))
+      (list (list '+ (first (rest (first expr))) (second (rest (first expr)))) (list '+ (first (rest (second expr))) (second (rest (second expr)))))))
+
+;(simplify-mult) =>
+(defn simplify-mult [expr]
+  (println "Simplify-Mult = " expr) 
+   ;(if (not (non-numeric? expr)) (eval expr)
+      (if (not (seq? expr)) expr
+       (if (= (count expr) 1) expr
+        (if (= (second expr) 0) 0
+          (if (= (nth expr 2) 0) 0
+            (if (= (second expr) 1) (nth expr 2)
+              (if (= (nth expr 2) 1) (second expr)
+                (if (and (number? (second expr)) (number? (nth expr 2))) (* (second expr) (nth expr 2))
+                  (list '* (second expr) (nth expr 2))))))))))
+
+;(simplify-add) =>
+(defn simplify-add [expr]
+  (println "Simplify-Add = " expr) 
+  ;(if (not (non-numeric? expr)) (eval expr)
+    (if (not (seq? expr)) expr
+     (if (= (count expr) 1) expr
+      (if (= (second expr) 0) (nth expr 2)
+        (if (= (nth expr 2) 0) (second expr)
+          (if (and (number? (second expr)) (number? (nth expr 2))) (+ (second expr) (nth expr 2))
+            (list '+ (second expr) (nth expr 2))))))))
+
+;(simplify-sub) =>
+(defn simplify-sub [expr]
+  (println "Simplify-Sub = " expr)
+  (if (= (count expr) 1) expr
+   (if (= (second expr) 0) (list '- (nth expr 2))
+    (if (= (nth expr 2) 0) (second expr)
+     (if (and (number? (second expr)) (number? (nth expr 2))) (- (second expr) (nth expr 2))
+             (list '- (second expr) (nth expr 2)))))))
+
+;(evalexp) =>
+(defn evalexp [exp bindings]
+     (simplify (bind-values bindings exp)))    
+
+
+
+;;====================================
+;; Alternative Solutions / Tests ... 
+;;====================================
+; 
+;(defn simplify-mult [expr]
+;(println "MULT- " expr)
+;  (let [simple (map simplify (rest expr))]
+;     (let [arg1 (first simple)
+;  	   arg2 (if (empty? (rest (rest simple)))			
+;		  (second simple)					
+;		  (simplify (concat (list '*) (rest simple))))]	
+;	(cond
+;	   (not (non-numeric? expr)) (eval expr)
+;      	   (= (second expr) 1) (nth expr 2)
+;     	   (= (nth expr 2) 1) (nth expr 1)
+;	   (= (second expr) 0) 0
+;	   (= (nth expr 2) 0) 0
+;	   (= (nth expr 2) nil) (second expr)
+;	   (and (number? (second expr))(seq? (nth expr 2))) (list '* (second expr))
+;    	    :default (concat (list '*) (list arg1) (list arg2)))
+;	     (if (and (number? arg1) (number? arg2)) (* arg1 arg2)
+;        (if (= arg1 0) arg2
+;			      (if (= arg2 0) arg1
+;				      (list '* arg1 arg2)))))))
+; 
+;(defn simplify-add [expr]
+;(println "ADD- " expr)
+;  (let [simple (map simplify (rest expr))]
+;     (let [arg1 (first simple)
+;  	   arg2 (if (empty? (rest (rest simple)))
+;		  (second simple)
+;		  (simplify (concat (list '+) (rest simple))))]
+;	(cond
+;    (not (non-numeric? expr)) (eval expr)
+;	  (= (second expr) 0) (nth expr 2)
+;	  (= (nth expr 2) 0) (nth expr 1)
+;	  (not (number? (second expr))) (list (first expr) (second expr))   
+;	  (not (number? (first expr))) (list (first expr) (second expr))    
+;	  (seq? (nth expr 2)) (simplify (nth expr 2))
+;        :default (concat (list '+) (list arg1) (list arg2)))
+;	   (if (and (number? arg1) (number? arg2)) (+ arg1 arg2) 		
+;		   (if (= arg1 0) arg2 
+;			   (if (= arg2 0) arg1
+;				   (list '+ arg1 arg2)))))
+; 
+;(defn simplify-sub [expr]
+;  (let [simple (map simplify (rest expr))]
+;     (let [arg1 (first simple)
+;  	   arg2 (if (empty? (rest (rest simple)))
+;		  (second simple)
+;		  (simplify (concat (list '-) (rest simple))))]
+;	(cond
+;	   (and (= (first expr) '-) (= (first (second expr)) '-)) (second (second expr))
+;	   (not(number? (second expr))) (list '- (second expr) (nth expr 2))
+;	   (not(number? (nth expr 2))) (list '- (second expr) (nth expr 2))
+;	   (= (nth expr 2) 0) (second expr)
+;	   (= (nth expr 2) nil) (second expr)
+;	   (not (non-numeric? expr)) (eval expr)
+;    	    :default (concat (list '-) (list arg1) (list arg2))))))
+; 
+;(defn simplify [expr]
+;  (println "SIMPLIFY == " expr)
+;  (let [arg1 (nth expr 1)
+;        arg2 (nth expr 2)]
+;    (if (= arg1 '+) (simplify-add arg1)
+;       (if (= arg2 '*) (simplify-mult arg2)))))
+;     (cond
+;          (cond
+;            (not (seq? expr)) expr
+;            (= (first (first expr)) '*) (simplify-mult expr)
+;            (= (first expr) '+) (simplify-add expr))
+;          (cond
+;            (not (non-numeric? expr)) (eval expr)
+;            (not (seq? expr)) expr
+;            (= (first expr) '*) (simplify-mult expr)
+;            (= (first expr) '+) (simplify-add expr)
+;            (= (first expr) '-) (simplify-sub expr)
+;
+;       ;;(seq? (fnext i)) (simplify (fnext i))
+;       :default expr))
+; 
+;(defn Main [expr]
+;  (let [listOne (rest (first expr))
+;        listTwo (rest (second expr))]
+;    (if (and (number? (first listOne)) (number? (second listOne))) (+ (first listOne) (second listOne))
+;      (listOne))
+;    (if (and (number? (first listTwo)) (number? (second listTwo))) (+ (first listTwo) (second listTwo))
+;      (listTwo))))
+

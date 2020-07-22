@@ -1,0 +1,107 @@
+(ns clojure-csc344.core)
+
+;; AND-expression: accepts 1, 2, or more args & reduces them into required form (())
+(defn and-exp
+    ([exp1] 
+      (list 'and exp1))
+    ([exp1 exp2] 
+      (list 'and exp1 exp2))
+    ([exp1 exp2 & more] 
+      (reduce and-exp (and-exp exp1 exp2) more)))
+
+
+;; OR-expression: accepts 1, 2, or more args & reduces them into required form (())
+(defn or-exp
+     ([exp1] 
+       (list 'or exp1))
+     ([exp1 exp2] 
+       (list 'or exp1 exp2))
+     ([exp1 exp2 & more] 
+       (reduce or-exp (or-exp exp1 exp2) more)))
+
+
+;; NOT-expression: accepts 1, 2, or more args
+;; call = (not-exp true) == (false) ------> WORKS!
+(defn not-exp 
+  [exp1] 
+    (list (not exp1))) ;;changed 'not exp1 to (not exp1) so it would return evaluated expression 
+
+
+;;expressions
+(def p1 '(and x (or x (and y (not z)))))
+(def p2 '(and (and x false) (or x true)))
+(def p3 '(or true a))
+
+
+;;build unevaluated expressions
+(defn and-exp [& args] (concat (list 'and) args))
+(defn or-exp [& args] (concat (list 'or) args))
+(defn not-exp [& args] (list 'not args))
+
+
+;; substitute
+(defn substitute [l m]
+  (map $[m % %] l))
+(defn map-exp []
+           (println (map list [
+                               (or true) 
+                               (or false)
+                               (and true)
+                               (and false)
+                               (or 'x false)
+                               (or false 'x)
+                               (or true 'x)
+                               ]))) ;;tried mapping evaluated expressions to try alternative way of doing it
+
+
+;; bind-values
+(defn bind-values [exp-bindings]
+  (substitute exp-bindings))
+
+
+;; simplify ((not working))
+(defn simplify [expr]
+  ( 
+    (= exp '(not true)) false
+    (= exp '(not false)) true))
+
+
+;; eval-exp? --> i think this might be the way to do it
+(defn evalexp [exp bindings] (simplify (bind-values bindings exp)))
+(evalexp p1 '{x false, z true})
+
+
+(defn try-subst [bindings expr-part]
+     (bindings expr-part expr-part))
+(try-subst {'not 'false} 'not) ;;returns false if 'not and 'not are equal
+(def expr '(+ 2 x 3))
+(map (fn [expr-part] (try-subst {'x 4} expr-part)) expr)
+
+
+;;trying to use above functions ^^ to evaluate expressions instead of numbers
+(def p1 '(and x (or x (and y (not z)))))
+(map (fn [expr-part] (try-subst {'x true, 'y false} expr-part)) p1)
+(map #({'x false, 'y true} % %) p1)
+
+
+;; deep-substitution
+(defn deep-subst [expr]
+        (map #(cond
+                (seq? %) (deep-subst %)
+                :default ({'x 4} % %))
+             expr))
+
+(deep-subst '(+ 2 (* 3 x))) ;;call
+
+
+
+;; MAIN
+(defn MAIN 
+  [& arguments]
+    (def p1 (and-exp (or-exp 'a (not-exp 'b) 'c) 'd 'e 'f)) ;; examples to see how the and-exp/ or-exp worked
+    (def p2 (and-exp (and-exp 'a) (or-exp 'b)))
+    (def p3 (or-exp 'a))
+    (println p1)
+    (println p2)
+    (println p3))
+             

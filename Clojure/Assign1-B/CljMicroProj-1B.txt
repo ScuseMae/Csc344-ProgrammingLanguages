@@ -1,0 +1,15 @@
+;;============= MicroProject =============;;
+
+ (defn non-numeric?
+     [l]
+     (some (fn [i]
+       (cond
+         (seq? i) (non-numeric? i)
+         (not (number? i)) true
+         :default false))
+       (rest l)))
+
+user=> (deep-non-numeric '(* 3 4))		;; nil
+user=> (deep-non-numeric '(* 3 a))		;; true
+user=> (deep-non-numeric '(* 3 4 (+ 1 2)))	;; nil
+user=> (deep-non-numeric '(* 3 4 (+ 1 a)))	;; true
